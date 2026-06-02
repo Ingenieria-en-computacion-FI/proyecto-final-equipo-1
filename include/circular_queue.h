@@ -7,7 +7,7 @@ CircularQueue* cq_create(int capacity);
 
 void cq_enqueue(CircularQueue *q, int value);
 
-void cq_dequeue(CircularQueue *q);
+int cq_dequeue(CircularQueue *q);
 
 int cq_is_empty(CircularQueue *q);
 
