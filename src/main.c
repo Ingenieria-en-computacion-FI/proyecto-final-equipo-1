@@ -1,83 +1,112 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include "scheduler.h"
 #include "memory_manager.h"
+#include "process.h"
+#include "linked_list.h"
+#include "algorithms.h"
 
 int main(int argc, char *argv[]) {
-    // 1. Inicializamos nuestro "Sistema Operativo"
-    // Le daremos 1024 MB de memoria RAM simulada
+    // 1. Inicialización (ROUND ROBIN con Quantum = 2)
     MemoryManager* ram = mm_create(1024); 
-    Scheduler* planificador = scheduler_create_fifo();
+    Scheduler* planificador = scheduler_create_round_robin(2); 
+    LinkedList* terminados = ll_create();
+    Process* tabla_procesos = malloc(sizeof(Process) * 10000);
+    
+    int memoria_asignada[10000] = {0}; 
+    int direccion_asignada[10000] = {0}; // ¡LA SOLUCIÓN AL CONGELAMIENTO!
 
     int procesos_a_simular = 0;
-    int modo_benchmark = 0;
+    int modo_benchmark = (argc > 1);
 
-    // 2. Verificamos si Python nos está mandando llamar desde benchmark.py
-    if (argc > 1) {
+    if (modo_benchmark) {
         procesos_a_simular = atoi(argv[1]);
-        modo_benchmark = 1;
-        // En modo benchmark, simularemos procesos rápidos
         for (int i = 0; i < procesos_a_simular; i++) {
+            tabla_procesos[i].pid = i;
+            tabla_procesos[i].burst_time = 10;
+            tabla_procesos[i].remaining_time = 10;
+            tabla_procesos[i].memory_required = 50;
+            tabla_procesos[i].state = READY; 
             scheduler_add_process(planificador, i, 10);
         }
     } else {
-        // 3. Modo normal: Leemos el archivo que generó generate_process.py
-        printf("Iniciando OS... Leyendo procesos.csv\n");
-        FILE* archivo_entrada = fopen("data/inputs/procesos.csv", "r");
-        
-        if (archivo_entrada == NULL) {
-            printf("Error: Primero debes correr generate_process.py en Python.\n");
-            return 1;
-        }
+        FILE* archivo = fopen("data/inputs/procesos.csv", "r");
+        if (archivo == NULL) return 1;
 
         int pid, burst, mem;
-        // Leemos cada línea separada por comas (CSV)
-        while (fscanf(archivo_entrada, "%d,%d,%d", &pid, &burst, &mem) == 3) {
+        while (fscanf(archivo, "%d,%d,%d", &pid, &burst, &mem) == 3) {
+            tabla_procesos[pid].pid = pid;
+            tabla_procesos[pid].burst_time = burst;
+            tabla_procesos[pid].remaining_time = burst; 
+            tabla_procesos[pid].memory_required = mem;
+            tabla_procesos[pid].state = READY; 
+            
             scheduler_add_process(planificador, pid, burst);
             procesos_a_simular++;
         }
-        fclose(archivo_entrada);
-    }
-
-    // 4. Ejecutamos la simulación y guardamos resultados
-    FILE* archivo_salida = NULL;
-    if (!modo_benchmark) {
-        archivo_salida = fopen("data/outputs/resultados.csv", "w");
-        fprintf(archivo_salida, "pid,estado,direccion_memoria\n");
+        fclose(archivo);
     }
 
     int pid_actual;
     int procesos_completados = 0;
+    int quantum = 2;
 
-    // Mientras haya procesos en la fila...
+    // 3. Ciclo de Ejecución 
     while ((pid_actual = scheduler_next(planificador)) != -1) {
-        // Intentamos darle 50MB de RAM a cada proceso
-        int direccion = mm_allocate_first_fit(ram, 50); 
         
-        if (direccion >= 0) {
-            if (!modo_benchmark) {
-                fprintf(archivo_salida, "%d,COMPLETADO,%d\n", pid_actual, direccion);
+        if (memoria_asignada[pid_actual] == 0) {
+            int direccion = mm_allocate_best_fit(ram, tabla_procesos[pid_actual].memory_required);
+            
+            if (direccion == -1) {
+                tabla_procesos[pid_actual].state = BLOCKED;
+                scheduler_add_process(planificador, pid_actual, tabla_procesos[pid_actual].remaining_time);
+                continue; 
             }
-            // Simulamos que terminó y liberamos su memoria para el siguiente
-            mm_free(ram, pid_actual); 
-            procesos_completados++;
+            memoria_asignada[pid_actual] = 1; 
+            // GUARDAMOS LA DIRECCIÓN DE MEMORIA
+            direccion_asignada[pid_actual] = direccion; 
+        }
+
+        tabla_procesos[pid_actual].state = RUNNING; 
+        
+        int tiempo_ejecucion = (tabla_procesos[pid_actual].remaining_time < quantum) ? tabla_procesos[pid_actual].remaining_time : quantum;
+        tabla_procesos[pid_actual].remaining_time -= tiempo_ejecucion;
+
+        if (tabla_procesos[pid_actual].remaining_time > 0) {
+            tabla_procesos[pid_actual].state = READY;
+            scheduler_add_process(planificador, pid_actual, tabla_procesos[pid_actual].remaining_time);
         } else {
-            if (!modo_benchmark) {
-                fprintf(archivo_salida, "%d,RECHAZADO_POR_FALTA_DE_RAM,-1\n", pid_actual);
-            }
+            tabla_procesos[pid_actual].state = FINISHED;
+            // ¡LIBERAMOS USANDO LA DIRECCIÓN CORRECTA!
+            mm_free(ram, direccion_asignada[pid_actual]); 
+            ll_insert_last(terminados, pid_actual);
+            procesos_completados++;
         }
     }
 
     if (!modo_benchmark) {
-        fclose(archivo_salida);
-        printf("Simulacion exitosa. Se procesaron %d procesos.\n", procesos_completados);
-        printf("Resultados guardados en data/outputs/resultados.csv\n");
+        printf("\n========================================\n");
+        printf("Simulacion OS - Ejecucion Finalizada\n");
+        printf("========================================\n");
+        printf("Planificador: Round Robin (Quantum = 2)\n");
+        printf("Manejo RAM  : Best Fit (Greedy) con Coalescencia\n");
+        printf("Procesos    : %d completados exitosamente.\n", procesos_completados);
+        
+        printf("\n--- Evaluacion de Algoritmos Extra ---\n");
+        int indice = binary_search_process(tabla_procesos, 0, procesos_a_simular - 1, 3);
+        if(indice != -1) printf("[Divide y Venceras] Busqueda Binaria PID 3: Encontrado en O(log n).\n");
+        
+        int pesos[] = {10, 20, 30};
+        int prioridades[] = {60, 100, 120};
+        int max_val = dp_knapsack_processes(50, pesos, prioridades, 3);
+        printf("[Programacion Dinamica] Maximizacion Knapsack (RAM 50MB): Valor optimo %d.\n", max_val);
+        printf("========================================\n\n");
     }
 
-    // 5. Apagamos el sistema y liberamos estructuras
     scheduler_destroy(planificador);
     mm_destroy(ram);
+    ll_destroy(terminados);
+    free(tabla_procesos);
 
     return 0;
 }

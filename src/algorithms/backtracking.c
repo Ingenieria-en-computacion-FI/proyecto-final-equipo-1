@@ -4,7 +4,7 @@ int backtracking_allocation(MemoryManager* mm, Stack* history, int pid, int size
     stack_push(history, pid);
     int address = brute_force_worst_fit(mm, size);
     if (address == -1) {
-        int failed_pid = stack_pop(history);
+        stack_pop(history);
         return -1;
     }
     return address;

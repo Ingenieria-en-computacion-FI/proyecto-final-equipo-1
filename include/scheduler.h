@@ -15,6 +15,9 @@ Scheduler *scheduler_create_fifo();
 
 Scheduler *scheduler_create_round_robin(int quantum);
 
+// Shortest Job First (SJF)
+Scheduler *scheduler_create_sjf();
+
 //Administracion de procesos
 
 void scheduler_add_process(Scheduler *scheduler, int pid, int burst_time);
