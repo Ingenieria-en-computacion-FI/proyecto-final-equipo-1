@@ -17,19 +17,36 @@ struct Scheduler {
 
 Scheduler *scheduler_create_fifo() {
     Scheduler* s = malloc(sizeof(Scheduler));
-    if (s) { s->type = 0; s->fifo_queue = queue_create(); s->rr_queue = NULL; s->quantum = 0; s->sjf_count = 0; }
+    if (s) { 
+        s->type = 0; 
+        s->fifo_queue = queue_create(); 
+        s->rr_queue = NULL; s->quantum = 0; 
+        s->sjf_count = 0; 
+    }
     return s;
 }
 
 Scheduler *scheduler_create_round_robin(int quantum) {
     Scheduler* s = malloc(sizeof(Scheduler));
-    if (s) { s->type = 1; s->fifo_queue = NULL; s->rr_queue = cq_create(10000); s->quantum = quantum; s->sjf_count = 0; }
+    if (s) { 
+        s->type = 1; 
+        s->fifo_queue = NULL; 
+        s->rr_queue = cq_create(10000); 
+        s->quantum = quantum; 
+        s->sjf_count = 0; 
+    }
     return s;
 }
 
 Scheduler *scheduler_create_sjf() {
     Scheduler* s = malloc(sizeof(Scheduler));
-    if (s) { s->type = 2; s->fifo_queue = NULL; s->rr_queue = NULL; s->quantum = 0; s->sjf_count = 0; }
+    if (s) { 
+        s->type = 2; 
+        s->fifo_queue = NULL; 
+        s->rr_queue = NULL; 
+        s->quantum = 0; 
+        s->sjf_count = 0; 
+    }
     return s;
 }
 
