@@ -1,0 +1,46 @@
+PROBAR VARIABLES Y ESTRATEGIAS
+
+			VISUAL STUDIO CODE CON GIT BASH
+En el panel de control textualmente se dice cuanta RAM quieres 
+en cuantos Quantums hace cada proceso y que estrategia quieres usar
+Para compilar es solo guardar el cambio en scr/main.c
+despues se ejecuta en la terminal de VS code 
+	gcc -Iinclude src/*.c src/algorithms/*.c src/memory/*.c src/scheduler/*.c -o bin/main.exe
+para compilar todo en un mismo bloque con el bin/make.exe
+
+Finalmente se ejecuta 
+	python scripts/benchmark.py
+Para crear el archivo .csv que puede ser leido de los valores registrados
+
+y luego se ejecuta 
+	python scripts/graphs.py
+Para que python lea el archivo .csv y cree una tabla con ello 
+
+			GITHUB CODESPACE
+	gcc -Iinclude src/*.c src/algorithms/*.c src/memory/*.c src/scheduler/*.c -o bin/main
+	python scripts/benchmark.py
+	python scripts/graphs.py
+
+
+********** NOTA*************
+En benchmark.py
+Busca la línea que dice:
+subprocess.run(["./bin/main.exe", str(n)]...) = Para VS Code powershell
+
+subprocess.run(["./bin/main", str(n)]...) = Para GitHub Codespace y VS Code Git Bash 
+
+todo lo hace con nombre generico, si quieres guardar las graficas generadas
+solo cambia el nombre a por ejemplo un _# y solo es repetir
+
+HOJA TECNICA DE LOS PROCESOS QUE SE EJECUTARON
+
+			VISUAL STUDIO CODE CON GIT BASH  Y GITHUB CODESPACE
+	./bin/main
+Funciona para ambos 
+
+CAMBIAR NUMERO Y CANTIDAD DE PRUEBAS 
+Busca el scripts/benchmark.py
+en la seccion tamanos, cambia en base al mismo formato [#1, #2, #3, ... , #n]
+Considera la RAM y los Quantum que le daras para lo que definas en esta parte, puede ser 
+que entres en un bucle infinito o el proceso se tarde muchisimo si das muy poca RAM por ejemplo 
+	
